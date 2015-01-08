@@ -154,8 +154,10 @@ document.addEventListener("DOMContentLoaded", function() {
 				// history & focus options are disabled on CodePen
 				// remove these lines in real life:
 				historyEnabled: false,
-				focus: false
-
+				focus: false,
+				showHideOpacity: false,
+				showAnimationDuration: false,
+				hideAnimationDuration: false
 			};
 
 			if(disableAnimation) {
