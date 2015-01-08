@@ -17,10 +17,7 @@
     -webkit-box-sizing: border-box;
             box-sizing: border-box; }
   .pswp img {
-    max-width: none;
-    width: 100%;
-    height: auto;
-  }
+    max-width: none; }
 
 .pswp--animate_opacity {
   opacity: 0.001;
