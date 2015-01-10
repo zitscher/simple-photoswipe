@@ -32,6 +32,8 @@ include_once('admin-options.php');
 
 
 function injectPhotoswipeInitScript() {
+	$options = get_option('photoswipe_options');
+
 	$script = "
 		<script>document.addEventListener('DOMContentLoaded', function() {
 			var initPhotoSwipeFromDOM = function(gallerySelector) {
@@ -183,7 +185,7 @@ function injectPhotoswipeInitScript() {
 						spacing: 0.12,
 						allowPanToNext: true,
 						maxSpreadZoom: 2,
-						loop: true,
+						loop: " . (int)$options['loop_images'] .",
 						pinchToClose: true,
 						closeOnScroll: true,
 						closeOnVerticalDrag: true,

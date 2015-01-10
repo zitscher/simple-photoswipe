@@ -15,7 +15,8 @@ class simple_photoswipe_options
 
 		if (!is_array($options)) {
 
-			$options['show_controls'] = false;
+			$options['show_controls'] = true;
+			$options['loop_images'] = true;
 
 			$options['thumbnail_width'] = 150;
 			$options['thumbnail_height'] = 150;
@@ -49,6 +50,12 @@ class simple_photoswipe_options
 				$options['show_controls'] = (bool)false;
 			}
 
+			if (isset($_POST['loop_images'])) {
+				$options['loop_images'] = (bool)true;
+			} else {
+				$options['loop_images'] = (bool)false;
+			}
+
 			update_option('photoswipe_options', $options);
 
 		} else {
@@ -74,26 +81,31 @@ class simple_photoswipe_options
 					<label for="show_controls">Show Controls</label>
 					<input type="checkbox" id="show_controls" name="show_controls" value="<?php echo($options['show_controls']); ?>" <?php checked($options['show_controls'] == 1); ?>/>
 				</p>
+
+				<p>
+					<label for="loop_images">Loop Images</label>
+					<input type="checkbox" id="loop_images" name="loop_images" value="<?php echo($options['loop_images']); ?>" <?php checked($options['loop_images'] == 1); ?>/>
+				</p>
 				
-				<p>
-					<label for="thumbnail_width">Thumbnail Width</label>
-					<input type="text" id="thumbnail_width" name="thumbnail_width" value="<?php echo($options['thumbnail_width']); ?>"/>
-				</p>
-
-				<p>
-					<label for="thumbnail_height">Thumbnail Height</label>
-					<input type="text" id="thumbnail_height" name="thumbnail_height" value="<?php echo($options['thumbnail_height']); ?>"/>
-				</p>
-
-				<p>
-					<label id="max_image_width">Max image width</label>
-					<input type="text" id="max_image_width" name="max_image_width" value="<?php echo($options['max_image_width']); ?>"/>
-				</p>
-
-				<p>
-					<label id="max_image_height">Max image height</label>
-					<input type="text" id="max_image_height" name="max_image_height" value="<?php echo($options['max_image_height']); ?>"/>
-				</p>
+<!--				<p>-->
+<!--					<label for="thumbnail_width">Thumbnail Width</label>-->
+<!--					<input type="text" id="thumbnail_width" name="thumbnail_width" value="--><?php //echo($options['thumbnail_width']); ?><!--"/>-->
+<!--				</p>-->
+<!---->
+<!--				<p>-->
+<!--					<label for="thumbnail_height">Thumbnail Height</label>-->
+<!--					<input type="text" id="thumbnail_height" name="thumbnail_height" value="--><?php //echo($options['thumbnail_height']); ?><!--"/>-->
+<!--				</p>-->
+<!---->
+<!--				<p>-->
+<!--					<label id="max_image_width">Max image width</label>-->
+<!--					<input type="text" id="max_image_width" name="max_image_width" value="--><?php //echo($options['max_image_width']); ?><!--"/>-->
+<!--				</p>-->
+<!---->
+<!--				<p>-->
+<!--					<label id="max_image_height">Max image height</label>-->
+<!--					<input type="text" id="max_image_height" name="max_image_height" value="--><?php //echo($options['max_image_height']); ?><!--"/>-->
+<!--				</p>-->
 
 				<p>
 					<input class="button-primary" type="submit" name="photoswipe_save" value="Save"/>
@@ -106,5 +118,3 @@ class simple_photoswipe_options
 
 // register functions
 add_action('admin_menu', array('simple_photoswipe_options', 'render'));
-
-$options = get_option('photoswipe_options');
