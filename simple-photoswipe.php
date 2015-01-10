@@ -18,178 +18,219 @@ function enqueue_scripts() {
 	wp_enqueue_style(  'photoswipe-default-skin',	$plugin_path . '/lib/default-skin/default-skin.css');
 	wp_enqueue_script( 'photoswipe', 				$plugin_path . '/lib/photoswipe.min.js');
 	wp_enqueue_script( 'photoswipe-ui-default', 	$plugin_path . '/lib/photoswipe-ui-default.min.js');
-
-	wp_enqueue_script( 'photoswipe-initialize', 	$plugin_path . '/simple-photoswipe.js');
 }
 add_action('wp_enqueue_scripts', 'enqueue_scripts');
 
-function inject_photoswipe_template () {
-	$output_buffer = '
-	<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
-		<div class="pswp__bg"></div>
+// append photoswipe template to DOM
+include_once('photoswipe_template.php');
 
-		<div class="pswp__scroll-wrap">
-			<div class="pswp__container">
-				<div class="pswp__item"></div>
-				<div class="pswp__item"></div>
-				<div class="pswp__item"></div>
-			</div>
+// change wp gallery output to match with photoswipe
+include_once('custom_wp_gallery_output.php');
 
-			<div class="pswp__ui pswp__ui--hidden">
-				<div class="pswp__top-bar">
-					<div class="pswp__counter"></div>
+// show admin photoswipe options
+include_once('admin-options.php');
 
-					<button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
-					<button class="pswp__button pswp__button--share" title="Share"></button>
-					<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
-					<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
 
-					<div class="pswp__preloader">
-						<div class="pswp__preloader__icn">
-							<div class="pswp__preloader__cut">
-								<div class="pswp__preloader__donut"></div>
-							</div>
-						</div>
-					</div>
-				</div>
+function injectPhotoswipeInitScript() {
+	$script = "
+		<script>document.addEventListener('DOMContentLoaded', function() {
+			var initPhotoSwipeFromDOM = function(gallerySelector) {
 
-				<div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
-					<div class="pswp__share-tooltip"></div>
-				</div>
+				// parse slide data (url, title, size ...) from DOM elements
+				// (children of gallerySelector)
+				var parseThumbnailElements = function(el) {
+					var thumbElements = el.childNodes,
+						numNodes = thumbElements.length,
+						items = [],
+						figureEl,
+						childElements,
+						linkEl,
+						size,
+						item;
 
-				<button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)"></button>
-				<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button>
+					for(var i = 0; i < numNodes; i++) {
+						figureEl = thumbElements[i]; // <figure> element
 
-				<div class="pswp__caption">
-					<div class="pswp__caption__center"></div>
-				</div>
-			</div>
-		</div>
-	</div>';
+						// include only element nodes
+						if(figureEl.nodeType !== 1) {
+							continue;
+						}
 
-	echo $output_buffer;
+						linkEl = figureEl.children[0]; // <a> element
+						size = linkEl.getAttribute('data-size').split('x');
+
+						// create slide object
+						item = {
+							src: linkEl.getAttribute('href'),
+							w: parseInt(size[0], 10),
+							h: parseInt(size[1], 10)
+						};
+
+						if(figureEl.children.length > 1) {
+							// <figcaption> content
+							item.title = figureEl.children[1].innerHTML;
+						}
+
+						if(linkEl.children.length > 0) {
+							// <img> thumbnail element, retrieving thumbnail url
+							item.msrc = linkEl.children[0].getAttribute('src');
+						}
+
+						item.el = figureEl; // save link to element for getThumbBoundsFn
+						items.push(item);
+					}
+
+					return items;
+				};
+
+				// find nearest parent element
+				var closest = function closest(el, fn) {
+					return el && ( fn(el) ? el : closest(el.parentNode, fn) );
+				};
+
+				// triggers when user clicks on thumbnail
+				var onThumbnailsClick = function(e) {
+					e = e || window.event;
+					e.preventDefault ? e.preventDefault() : e.returnValue = false;
+
+					var eTarget = e.target || e.srcElement;
+
+					var clickedListItem = closest(eTarget, function(el) {
+						return (el.tagName && el.tagName.toUpperCase() === 'FIGURE');
+					});
+
+					if(!clickedListItem) {
+						return;
+					}
+
+
+					// find index of clicked item
+					var clickedGallery = clickedListItem.parentNode,
+						childNodes = clickedListItem.parentNode.childNodes,
+						numChildNodes = childNodes.length,
+						nodeIndex = 0,
+						index;
+
+					for (var i = 0; i < numChildNodes; i++) {
+						if(childNodes[i].nodeType !== 1) {
+							continue;
+						}
+
+						if(childNodes[i] === clickedListItem) {
+							index = nodeIndex;
+							break;
+						}
+						nodeIndex++;
+					}
+
+
+
+					if(index >= 0) {
+						openPhotoSwipe( index, clickedGallery );
+					}
+					return false;
+				};
+
+				// parse picture index and gallery index from URL (#&pid=1&gid=2)
+				var photoswipeParseHash = function() {
+					var hash = window.location.hash.substring(1),
+						params = {};
+
+					if(hash.length < 5) {
+						return params;
+					}
+
+					var vars = hash.split('&');
+					for (var i = 0; i < vars.length; i++) {
+						if(!vars[i]) {
+							continue;
+						}
+						var pair = vars[i].split('=');
+						if(pair.length < 2) {
+							continue;
+						}
+						params[pair[0]] = pair[1];
+					}
+
+					if(params.gid) {
+						params.gid = parseInt(params.gid, 10);
+					}
+
+					if(!params.hasOwnProperty('pid')) {
+						return params;
+					}
+					params.pid = parseInt(params.pid, 10);
+					return params;
+				};
+
+				var openPhotoSwipe = function(index, galleryElement) {
+					var pswpElement = document.querySelectorAll('.pswp')[0],
+						gallery,
+						options,
+						items;
+
+					items = parseThumbnailElements(galleryElement);
+
+					// define options (if needed)
+					options = {
+						index: index,
+						history: true,
+						focus: true,
+						showHideOpacity: false,
+						showAnimationDuration: 150,
+						hideAnimationDuration: 150,
+						bgOpacity: 0.8,
+						spacing: 0.12,
+						allowPanToNext: true,
+						maxSpreadZoom: 2,
+						loop: true,
+						pinchToClose: true,
+						closeOnScroll: true,
+						closeOnVerticalDrag: true,
+						escKey: true,
+						arrowKeys: true,
+						history: true,
+						mainClass: 'awesome-photoswipe',
+
+						// define gallery index (for URL)
+						galleryUID: galleryElement.getAttribute('data-pswp-uid'),
+
+						getThumbBoundsFn: function(index) {
+							// See Options -> getThumbBoundsFn section of docs for more info
+							var thumbnail = items[index].el.getElementsByTagName('img')[0], // find thumbnail
+								pageYScroll = window.pageYOffset || document.documentElement.scrollTop,
+								rect = thumbnail.getBoundingClientRect();
+
+							return {x:rect.left, y:rect.top + pageYScroll, w:rect.width};
+						}
+					};
+
+					// Pass data to PhotoSwipe and initialize it
+					gallery = new PhotoSwipe( pswpElement, PhotoSwipeUI_Default, items, options);
+					gallery.init();
+				};
+
+				// loop through all gallery elements and bind events
+				var galleryElements = document.querySelectorAll( gallerySelector );
+
+				for(var i = 0, l = galleryElements.length; i < l; i++) {
+					galleryElements[i].setAttribute('data-pswp-uid', i+1);
+					galleryElements[i].onclick = onThumbnailsClick;
+				}
+
+				// Parse URL and open gallery if it contains #&pid=3&gid=1
+				var hashData = photoswipeParseHash();
+				if(hashData.pid > 0 && hashData.gid > 0) {
+					openPhotoSwipe( hashData.pid - 1 ,  galleryElements[ hashData.gid - 1 ], true );
+				}
+			};
+
+			// init photoswipe
+			initPhotoSwipeFromDOM('.gallery');
+		});
+	</script>";
+
+	echo $script;
 }
 
-add_action('wp_footer', 'inject_photoswipe_template');
-
-// Custom filter function to modify default gallery shortcode output
-function my_post_gallery( $output, $attr ) {
-
-	// Initialize
-	global $post, $wp_locale;
-
-	// Gallery instance counter
-	static $instance = 0;
-	$instance++;
-
-	// Validate the author's orderby attribute
-	if ( isset( $attr['orderby'] ) ) {
-		$attr['orderby'] = sanitize_sql_orderby( $attr['orderby'] );
-		if ( ! $attr['orderby'] ) unset( $attr['orderby'] );
-	}
-
-	// Get attributes from shortcode
-	extract( shortcode_atts( array(
-								 'order'      => 'ASC',
-								 'orderby'    => 'menu_order ID',
-								 'id'         => $post->ID,
-								 'itemtag'    => 'figure',
-								 'icontag'    => 'dt',
-								 'captiontag' => 'figcaption',
-								 'columns'    => 3,
-								 'size'       => 'thumbnail',
-								 'include'    => '',
-								 'exclude'    => ''
-							 ), $attr ) );
-
-	// Initialize
-	$id = intval( $id );
-	$attachments = array();
-	if ( $order == 'RAND' ) $orderby = 'none';
-
-	if ( ! empty( $include ) ) {
-
-		// Include attribute is present
-		$include = preg_replace( '/[^0-9,]+/', '', $include );
-		$_attachments = get_posts( array( 'include' => $include, 'post_status' => 'inherit', 'post_type' => 'attachment', 'post_mime_type' => 'image', 'order' => $order, 'orderby' => $orderby ) );
-
-		// Setup attachments array
-		foreach ( $_attachments as $key => $val ) {
-			$attachments[ $val->ID ] = $_attachments[ $key ];
-		}
-
-	} else if ( ! empty( $exclude ) ) {
-
-		// Exclude attribute is present
-		$exclude = preg_replace( '/[^0-9,]+/', '', $exclude );
-
-		// Setup attachments array
-		$attachments = get_children( array( 'post_parent' => $id, 'exclude' => $exclude, 'post_status' => 'inherit', 'post_type' => 'attachment', 'post_mime_type' => 'image', 'order' => $order, 'orderby' => $orderby ) );
-	} else {
-		// Setup attachments array
-		$attachments = get_children( array( 'post_parent' => $id, 'post_status' => 'inherit', 'post_type' => 'attachment', 'post_mime_type' => 'image', 'order' => $order, 'orderby' => $orderby ) );
-	}
-
-	if ( empty( $attachments ) ) return '';
-
-	// Filter gallery differently for feeds
-	if ( is_feed() ) {
-		$output = "\n";
-		foreach ( $attachments as $att_id => $attachment ) $output .= wp_get_attachment_link( $att_id, $size, true ) . "\n";
-		return $output;
-	}
-
-	// Filter tags and attributes
-	$itemtag = tag_escape( $itemtag );
-	$captiontag = tag_escape( $captiontag );
-	$columns = intval( $columns );
-	$itemwidth = $columns > 0 ? floor( 100 / $columns ) : 100;
-	$float = is_rtl() ? 'right' : 'left';
-	$selector = "gallery-{$instance}";
-
-	// Filter gallery CSS
-	$output = apply_filters( 'gallery_style', "
-		<style type='text/css'>
-			#{$selector} .gallery-item {
-				width: {$itemwidth}%;
-			}
-		</style>
-		<!-- see gallery_shortcode() in wp-includes/media.php -->
-		<div id='$selector' class='gallery galleryid-{$id}'>"
-	);
-
-	// Iterate through the attachments in this gallery instance
-	$i = 0;
-	foreach ( $attachments as $id => $attachment ) {
-
-		// Attachment link
-		$link = isset( $attr['link'] ) && 'file' == $attr['link'] ? wp_get_attachment_link( $id, $size, false, false ) : wp_get_attachment_link( $id, $size, true, false );
-
-		// Start itemtag
-		$output .= "<{$itemtag} class='gallery-item'>";
-
-		// icontag
-		$output .= $link;
-
-		if ( $captiontag && trim( $attachment->post_excerpt ) ) {
-
-			// captiontag
-			$output .= "
-			<{$captiontag} class='gallery-caption'>
-				" . wptexturize($attachment->post_excerpt) . "
-			</{$captiontag}>";
-
-		}
-
-		// End itemtag
-		$output .= "</{$itemtag}>";
-	}
-
-	// End gallery output
-	$output .= "</div>\n";
-
-	return $output;
-}
-
-// Apply filter to default gallery shortcode
-add_filter( 'post_gallery', 'my_post_gallery', 10, 2 );
+add_action('wp_footer', 'injectPhotoswipeInitScript');
