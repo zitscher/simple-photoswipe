@@ -1,0 +1,12 @@
+#photoswipe_admin p {
+	margin-bottom: 20px;
+}
+
+#photoswipe_admin p input[type="checkbox"] {
+	float: left;
+}
+
+#photoswipe_admin p input[type="text"] {
+	display: block;
+	margin: 0;
+}

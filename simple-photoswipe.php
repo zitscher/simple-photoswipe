@@ -20,17 +20,17 @@ function enqueue_scripts() {
 }
 add_action('wp_enqueue_scripts', 'enqueue_scripts');
 
-// append photoswipe template to DOM
-include_once('photoswipe-template.php');
-
 // change wp gallery output to match with photoswipe
-include_once('custom_wp_gallery_output.php');
+include_once('custom-gallery.php');
 
 // show admin photoswipe options
 include_once('admin-options.php');
 
+// append photoswipe template to DOM
+include_once('photoswipe/photoswipe-template.php');
+
 // inject photoswipe default ui
-include_once('photoswipe-ui.php');
+include_once('photoswipe/photoswipe-ui.php');
 
 // initialize photoswipe
-include_once('photoswipe-init.php');
+include_once('photoswipe/photoswipe-init.php');

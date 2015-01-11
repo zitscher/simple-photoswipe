@@ -162,7 +162,6 @@ function injectPhotoswipeInitScript() {
 							closeOnVerticalDrag: true,
 							escKey: true,
 							arrowKeys: true,
-							history: true,
 							mainClass: 'awesome-photoswipe',
 
 							// define gallery index (for URL)

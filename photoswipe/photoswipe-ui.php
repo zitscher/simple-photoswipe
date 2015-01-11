@@ -1,6 +1,8 @@
 <?php
 
 function injectPhotoswipeDefaultUI() {
+	$options = get_option('photoswipe_options');
+
 	$photoswipe_ui_script = "
 		<script>
 			(function (root, factory) {
@@ -43,7 +45,7 @@ function injectPhotoswipeDefaultUI() {
 
 					_options,
 					_defaultUIOptions = {
-						barsSize: {top:44, bottom:'auto'},
+						barsSize: {top:" . $options['bar_size'] .", bottom:'auto'},
 						closeElClasses: ['item', 'caption', 'zoom-wrap', 'ui', 'top-bar'],
 						timeToIdle: 4000,
 						timeToIdleOutside: 1000,
@@ -58,17 +60,19 @@ function injectPhotoswipeDefaultUI() {
 							return true;
 						},
 
-						closeEl:true,
-						captionEl: true,
-						fullscreenEl: true,
-						zoomEl: true,
-						shareEl: true,
-						counterEl: true,
-						arrowEl: true,
-						preloaderEl: true,
+						closeEl:" . 			(int)$options['show_close_element'] .",
+						captionEl: true, // can't turn of yet, photoswipe exception!
+						fullscreenEl: " . 		(int)$options['show_fullscreen_element'] .",
+						zoomEl: " . 			(int)$options['show_zoom_element'] .",
+						shareEl: " . 			(int)$options['show_share_element'] .",
+						counterEl: " . 			(int)$options['show_counter_element'] .",
+						arrowEl: " . 			(int)$options['show_arrow_element'] .",
+						preloaderEl: " . 		(int)$options['show_preloader_element'] .",
 
-						tapToClose: false,
-						tapToToggleControls: true,
+						tapToClose: " . 		(int)$options['tap_to_close'] .",
+						tapToToggleControls: ". (int)$options['tap_to_toggle_controls'] .",
+
+						indexIndicatorSep: ' ". (string)$options['indexIndicatorSep'] ." ',
 
 						shareButtons: [
 							{id:'facebook', label:'Share on Facebook', url:'https://www.facebook.com/sharer/sharer.php?u={{url}}'},
@@ -85,9 +89,6 @@ function injectPhotoswipeDefaultUI() {
 						getTextForShare: function( /* shareButtonData */ ) {
 							return pswp.currItem.title || '';
 						},
-
-						indexIndicatorSep: ' / '
-
 					},
 					_blockControlsTap,
 					_blockControlsTapTimeout;
