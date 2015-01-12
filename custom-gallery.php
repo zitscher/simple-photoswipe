@@ -91,9 +91,6 @@
 			<style type='text/css'>
 				#{$selector} {
 					/* Masonry container */
-					-moz-column-count: {$columns};
-					-webkit-column-count: {$columns};
-					column-count: {$columns};
 					-moz-column-gap: 1em;
 					-webkit-column-gap: 1em;
 					column-gap: 1em;
@@ -110,19 +107,30 @@
 					height: auto;
 				}
 
-				@media only screen and (min-width: 400px) {
+				/* #2- Portrait tablet to landscape and desktop */
+				@media (min-width: 768px){
 					#{$selector} {
-						-moz-column-count: 2;
-						-webkit-column-count: 2;
-						column-count: 2;
+						-moz-column-count: {$columns} !important;
+						-webkit-column-count: {$columns} !important;
+						column-count: {$columns} !important;
 					}
 				}
 
-				@media only screen and (min-width: 768px) {
+				/* #3- Landscape phone to portrait tablet */
+				@media (min-width: 481px) and (max-width: 767px) {
 					#{$selector} {
-						-moz-column-count: 3;
-						-webkit-column-count: 3;
-						column-count: 3;
+						-moz-column-count: 3 !important;
+						-webkit-column-count: 3 !important;
+						column-count: 3 !important;
+					}
+				}
+
+				/* #4- Landscape phones and down */
+				@media (max-width: 480px) {
+					#{$selector} {
+						-moz-column-count: 2 !important;
+						-webkit-column-count: 2 !important;
+						column-count: 2 !important;
 					}
 				}
 			</style>
